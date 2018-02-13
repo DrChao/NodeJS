@@ -1,0 +1,5 @@
+﻿与各国知识产权局网站或APP对接
+网站对接：通过WebBrowser，将DB中的数据写入到相应的页面控件中。
+对于一般控件都容易处理，如TextBox，通过value属性设置；Radio/Button/CheckBox通过Click()方法
+对于Select，则通过selectedIndex属性/*索引匹配*/，或执行js：document.parentWindow.execScript(str, "javascript");/*value值匹配*/
+对于FileInput，IE8以前版本，则通file.select();后SendKeys.SendWait(filePath);IE8以后版本，file.focus();后SendKeys.SendWait(" ");打开文件对话框，再借助BackGroundWorker的DoWork事件/*传递filePaht给RunWorkerCompleted事件(e.Result = e.Argument;)*/和RunWorkerCompleted事件/*借助SendKeys将filePath输入到文件对话框*/，调用RunWorkerAsync(filePath)方法实现

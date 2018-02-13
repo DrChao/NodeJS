@@ -1,0 +1,48 @@
+﻿一、回调函数
+function f1(callback){
+　　setTimeout(function () {
+　　　　// f1的任务代码
+　　　　callback();
+　　}, 1000);
+}
+f1(f2);
+/*总结：各个部分之间高度耦合，不利于代码的阅读和维护，而且每个任务只能指定一个回调函数*/
+
+
+二、事件监听：思路是采用事件驱动模式。任务的执行不取决于代码的顺序，而取决于某个事件是否发生。
+f1.on('done', f2);
+function f1(){
+　　setTimeout(function () {
+　　　　// f1的任务代码
+　　　　f1.trigger('done');
+　　}, 1000);
+}
+/*总结：优点为可以绑定多个事件，每个事件可以指定多个回调函数，去耦合有利于实现模块化；缺点：程序都要变成事件驱动型，运行流程不清晰*/
+
+
+三、发布/订阅：思路是先向信号中心"订阅"（subscribe）一个信号(事件)，当某个任务执行完成就向信号中心"发布"（publish）这个信号(事件)，又称"观察者模式"（observer pattern）。
+借助于jQuery的插件，如pub/sub(https://gist.github.com/661855)
+jQuery.subscribe("done", f2);//f2向"信号中心"jQuery订阅"done"信号。
+function f1(){
+　　setTimeout(function () {
+　　　　// f1的任务代码
+　　　　jQuery.publish("done");//f1执行完成后，向"信号中心"jQuery发布"done"信号，从而引发f2的执行。
+　　}, 1000);
+}
+
+jQuery.unsubscribe("done", f2);//f2完成执行后，也可以取消订阅（unsubscribe）。
+/*总结：与"事件监听"类似，但可以监控程序的运行(了解存在多少信号、每个信号有多少订阅者)*/
+
+四、Promises对象：思想是每一个异步任务返回一个Promise对象，该对象有一个then方法，允许指定回调函数。
+f1().then(f2);
+function f1(){
+　　var dfd = $.Deferred();
+　　setTimeout(function () {
+　　　　// f1的任务代码
+　　　　dfd.resolve();
+　　}, 500);
+　　return dfd.promise;
+}
+f1().then(f2).then(f3);//指定多个回调函数
+f1().then(f2).fail(f3);//指定发生错误时的回调函数
+/总结：优点为回调函数变成了链式写法，程序的流程清楚，而且有一整套的配套方法，如指定多个回调函数、指定发生错误时的回调函数。/

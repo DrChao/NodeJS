@@ -1,0 +1,169 @@
+﻿NodeJS是单进程单线程应用程序，通过事件和回调支持并发。
+NodeJS使用事件驱动/非阻塞式IO模型：当web server接收到请求，就把它关闭然后进行处理，然后去服务下一个web请求，而异步 I/O 操作在完成时都会发送一个事件到事件队列Event Loop。当该事件到达队列开头，就会执行回调函数将结果返回给用户
+
+NodeJS 应用程序是如何工作的？
+在 Node 应用程序中，执行异步操作的函数将回调函数作为最后一个参数， 回调函数接收错误对象作为第一个参数。
+
+**********NodeJS的核心库 Begin*************
+EventEmitter 类：
+事件触发与事件监听器，var events = require('events');
+大多数时候我们不会直接使用 EventEmitter，而是在对象中继承它。包括 fs、net、 http 在内的，只要是支持事件响应的核心模块都是 EventEmitter 的子类。
+
+为什么要这样做呢？原因有两点：
+首先，具有某个实体功能的对象实现事件符合语义， 事件的监听和发生应该是一个对象的方法。
+其次 JavaScript 的对象机制是基于原型的，支持 部分多重继承，继承 EventEmitter 不会打乱对象原有的继承关系。
+
+Buffer类：
+该类用来创建一个专门存放二进制数据的缓存区：JavaScript 语言自身只有字符串数据类型，没有二进制数据类型，在处理像TCP流或文件流时，必须使用到二进制数据。
+一个 Buffer 类似于一个整数数组，但它对应于 V8 堆内存之外的一块原始内存。
+Buffer 与字符编码：ascii/utf8/ucs2/base64/binary/hex，Buffer 实例与普通的 JavaScript 字符串之间进行相互转换，const buf = Buffer.from('runoob', 'ascii'); buf.toString('hex');
+创建 Buffer 类对象：Buffer.alloc(size[, fill[, encoding]])、Buffer.from(arrayBuffer[, byteOffset[, length]])
+写入缓冲区：buf.write(string[, offset[, length]][, encoding])
+从缓冲区读取数据：buf.toString([encoding[, start[, end]]])
+将 Buffer 转换为 JSON 对象：buf.toJSON()，当字符串化一个 Buffer 实例时，JSON.stringify() 会隐式地调用该 toJSON()。
+缓冲区合并：Buffer.concat(list[, totalLength])
+缓冲区比较：buf.compare(otherBuffer);
+拷贝缓冲区：buf.copy(targetBuffer[, targetStart[, sourceStart[, sourceEnd]]])
+缓冲区裁剪：buf.slice([start[, end]])
+缓冲区长度：buf.length;
+
+Stream类：
+Stream是一个抽象接口，Node 中有很多对象实现了这个接口。例如，对http 服务器发起请求的request 对象就是一个 Stream，还有stdout（标准输出）。
+Stream 有四种流类型：Readable/*可读操作*/，Writable/*可写操作*/，Duplex/*可读可写操作*/，Transform/*操作被写入数据，然后读出结果*/
+Stream 对象都是 EventEmitter 的实例。常用的事件有：data/*当有数据可读时触发*/，end/*没有更多的数据可读时触发*/，error/*在接收和写入过程中发生错误时触发*/，finish/*所有数据已被写入到底层系统时触发*/
+管道流/pipe：管道提供了一个输出流到输入流的机制。通常我们用于从一个流中获取数据并将数据传递到另外一个流中。实现大文件的复制过程，readerStream.pipe(writerStream);
+链式流：链式是通过连接输出流到另外一个流并创建多个流操作链的机制。链式流结合管道操作，实现压缩和解压文件。/*压缩文件*/fs.createReadStream('input.txt').pipe(zlib.createGzip()).pipe(fs.createWriteStream('input.txt.gz'));/*解压文件*/fs.createReadStream('input.txt.gz').pipe(zlib.createGunzip()).pipe(fs.createWriteStream('input.txt'));
+
+**********NodeJS的核心库 End*************
+
+
+
+模块系统：
+模块是NodeJS 应用程序的基本组成部分，文件和模块是一一对应的。换言之，一个 NodeJS 文件就是一个模块，这个文件可能是JavaScript 代码、JSON 或者编译过的C/C++ 扩展。
+NodeJS 提供了 exports 和 require 两个对象，其中 exports 是模块公开的接口，require 用于从外部获取一个模块的接口，即所获取模块的 exports 对象。
+创建模块：/*exports对象，把method作为模块的访问接口*/exports.method = function() {};/*把一个对象封装到模块中*/module.exports = function Klass() {};
+NodeJS 的 require 方法中的文件查找策略：从文件模块缓存中加载，从原生模块加载，从文件加载
+
+路由：
+路由需要根据请求URL或POST参数中的数据来执行相应的代码，为了解析这些数据，我们需要额外的 NodeJS 模块，它们分别是 url 和 querystring 模块。其中querystring 模块来解析 POST 请求体中的参数。
+url模块常用属性：url.parse(string).query、url.parse(string).pathname
+querystring模块常用方法：querystring.parse(queryString)["foo"]、querystring.parse(queryString)["hello"]
+
+全局对象
+JavaScript 中有一个特殊的对象，称为全局对象（Global Object），它及其所有属性都可以在程序的任何地方访问，即全局变量。NodeJS全局变量以__开头。满足以下条 件的变量是全局变量：
+在最外层定义的变量；
+全局对象的属性；
+隐式定义的变量（未定义直接赋值的变量）。
+
+常用全局变量：
+__filename：表示当前正在执行的脚本的文件名，它将输出文件所在位置的绝对路径。
+__dirname：表示当前执行脚本所在的目录。
+setTimeout(cb, ms)：全局函数，在指定的毫秒(ms)数后执行指定函数(cb)，返回一个代表定时器的句柄值。
+clearTimeout(t)：全局函数，用于停止一个之前通过 setTimeout() 创建的定时器
+setInterval(cb, ms)：全局函数，在指定的毫秒(ms)数后执行指定函数(cb)。返回一个代表定时器的句柄值。
+console：用于提供控制台标准输出，如console.log('byvoid%diovyb', 1991)、 console.error()、console.trace()、console.time/timeEnd("flag"）
+process：用于描述当前NodeJS 进程状态的对象，提供了一个与操作系统的简单接口，常用的成员方法如exit
+
+**********NodeJS的常用工具 Begin*************
+util 是一个NodeJS 核心模块，提供常用函数的集合，用于弥补核心JavaScript 的功能 过于精简的不足。
+
+util.inherits(constructor, superConstructor)：是一个实现对象间原型继承的函数
+JavaScript 的面向对象特性是基于原型的，与常见的基于类的不同。JavaScript 没有 提供对象继承的语言级别特性，而是通过原型复制来实现的。注意
+1、Sub 仅仅继承了Base 在【原型中】定义的函数，而Base构造函数内部创造的属性和函数都不会被Sub 继承。
+2、在【原型中】定义的属性不会被console.log 作为对象的属性输出
+
+
+util.inspect(object,[showHidden],[depth],[colors])：是一个将任意对象转换为字符串的方法，通常用于调试和错误输出。注意
+1、util.inspect 并不会简单地直接把对象转换为字符串，即使该对 象定义了toString 方法也不会调用。
+
+util.isArray(object)：如果给定的参数 "object" 是一个数组返回true，否则返回false。
+util.isRegExp(object)：如果给定的参数 "object" 是一个正则表达式返回true，否则返回false。
+util.isDate(object)：如果给定的参数 "object" 是一个日期返回true，否则返回false。
+util.isError(object)：如果给定的参数 "object" 是一个错误对象返回true，否则返回false。
+更多可以参考http://nodejs.org/api/util.html
+**********NodeJS的常用工具 End*************
+
+文件系统：
+Node 导入文件系统模块(fs)语法如下所示：var fs = require("fs")
+异步和同步：NodeJS 文件系统（fs 模块）模块中的方法均有异步和同步版本，例如读取文件内容的函数有异步的 fs.readFile() 和同步的 fs.readFileSync()。
+打开文件：异步模式下打开文件的语法格式，fs.open(path, flags[, mode], callback)，其中callback /*回调函数，带有两个参数如：callback(err, fd)。*/
+----------------------------------------
+Flag	描述
+r	以读取模式打开文件。如果文件不存在抛出异常。
+r+	以读写模式打开文件。如果文件不存在抛出异常。
+rs	以同步的方式读取文件。
+rs+	以同步的方式读取和写入文件。
+w	以写入模式打开文件，如果文件不存在则创建。
+wx	类似 'w'，但是如果文件路径存在，则文件写入失败。
+w+	以读写模式打开文件，如果文件不存在则创建。
+wx+	类似 'w+'， 但是如果文件路径存在，则文件读写失败。
+a	以追加模式打开文件，如果文件不存在则创建。
+ax	类似 'a'， 但是如果文件路径存在，则文件追加失败。
+a+	以读取追加模式打开文件，如果文件不存在则创建。
+ax+	类似 'a+'， 但是如果文件路径存在，则文件读取追加失败。
+----------------------------------------
+获取文件信息：异步模式获取文件信息的语法格式，fs.stat(path, callback)，其中callback/*回调函数，带有两个参数如：(err, stats), stats 是 fs.Stats 对象。*/，stats类中的方法有：
+----------------------------------------
+方法	描述
+stats.isFile()	如果是文件返回 true，否则返回 false。
+stats.isDirectory()	如果是目录返回 true，否则返回 false。
+stats.isBlockDevice()	如果是块设备返回 true，否则返回 false。
+stats.isCharacterDevice()	如果是字符设备返回 true，否则返回 false。
+stats.isSymbolicLink()	如果是软链接返回 true，否则返回 false。
+stats.isFIFO()	如果是FIFO，返回true，否则返回 false。FIFO是UNIX中的一种特殊类型的命令管道。
+stats.isSocket()	如果是 Socket 返回 true，否则返回 false。
+----------------------------------------
+写入文件：异步模式下写入文件的语法格式，fs.writeFile(file, data[, options], callback)，其中options/*该参数是一个对象，包含 {encoding, mode, flag}。默认编码为 utf8, 模式为 0666 ， flag 为 'w'*/
+读取文件：异步模式下读取文件的语法格式，fs.read(fd, buffer, offset, length, position, callback)，其中callback/*回调函数，有三个参数err, bytesRead, buffer，err 为错误信息， bytesRead 表示读取的字节数，buffer 为缓冲区对象。*/
+关闭文件：异步模式下关闭文件的语法格式，fs.close(fd, callback)，其中fd /*通过 fs.open() 方法返回的文件描述符。*/
+截取文件；异步模式下截取文件的语法格式，fs.ftruncate(fd, len, callback)，该方法使用了文件描述符来读取文件。
+删除文件：删除文件的语法格式，fs.unlink(path, callback)
+创建目录：创建目录的语法格式，fs.mkdir(path[, mode], callback)
+读取目录：读取目录的语法格式，fs.readdir(path, callback)，callback /*回调函数，回调函数带有两个参数err, files，err 为错误信息，files 为 目录下的文件数组列表*/
+删除目录：删除目录的语法格式，fs.rmdir(path, callback)
+更多可以参考https://nodejs.org/api/fs.html
+
+
+GET/POST请求：
+获取GET请求内容：GET请求直接被嵌入在路径中，URL是完整的请求路径，包括了?后面的部分，因此你可以手动解析后面的内容作为GET请求的参数。NodeJS 中 url 模块中的 parse 函数提供了这个功能。
+获取 POST 请求内容：POST 请求的内容全部的都在请求体中，http.ServerRequest 并没有一个属性内容为请求体，原因是等待请求体传输可能是一件耗时的工作。比如上传文件，而很多时候我们可能并不需要理会请求体的内容，恶意的POST请求会大大消耗服务器的资源，所以 NodeJS 默认是不会解析请求体的，当你需要的时候，需要手动来做。
+
+
+Web 模块：
+Web服务器一般指网站服务器，是指驻留于因特网上某种类型计算机的程序，Web服务器的基本功能就是提供Web信息浏览服务。它只需支持HTTP协议、HTML文档格式及URL，与客户端的网络浏览器配合。目前最主流的三个Web服务器是Apache、Nginx、IIS。
+使用 Node 创建 Web 服务器：http.createServer( function (request/*http.ServerRequest*/, response/http.ServerResponse/) {  })，其中
+	http.ServerRequest有3个事件【data/end/close】来控制请求体的传输(获取POST请求内容)
+	http.ServerResponse有三个重要方法，response.writeHead(statusCode,[headers])/*向请求的客户端发送响应头*/、response.write(data,[encodeing])/*向请求的客户端发送相应内容*/、response.end([data],[encoding])/*响应结束，告知客户端所有发送已经完成*/
+使用 Node 创建 Web 客户端：var req = http.request(options, callback);/*callback为回调函数，参数为http.ClientResponse的一个实例*/ req.end();，其中http.request返回一个http.ClientRequest的实例
+	var req=http.get(options,callback)，它为http.request的简化版，只能处理GET请求，不需要手动调用req.end()
+	
+	http.ClientRequest：是由http.request或http.get返回产生的对象，表示一个已经产生正在处理的HTTP请求。它提供了一个response事件，相对回调函数方式，可以显示绑定这个事件的监听函数。还提供了函数方法，如request.write、request.end/*向服务器发送请求体*/、request.abort()/*终止正在发送的请求*/、request.setTimeout(timeout,[callback])等
+	http.ClientResponse：有3个事件【data/end/close】来控制响应体的传输。还提供了几个特殊函数response.setEncoding([encoding])/*设置默认编码，默认值为null，以Buffer存储*/、response.pause()、response.resume()
+	
+	
+***********Express框架 Begin***********
+Express 框架核心特性：
+1、可以设置中间件来响应 HTTP 请求。如安装body-parser/*node.js 中间件，用于处理 JSON, Raw, Text 和 URL 编码的数据*/； cookie-parser/*这就是一个解析Cookie的工具。通过req.cookies可以取到传过来的cookie，并把它们转成对象*/；    multer/*node.js 中间件，用于处理 enctype="multipart/form-data"（设置表单的MIME编码）的表单数据*/
+2、定义了路由表用于执行不同的 HTTP 请求动作。如app.get('/index.htm', function (req, res) {res.sendFile( __dirname + "/" + "index.htm" );}）
+3、可以通过向模板传递参数来动态渲染 HTML 页面。
+	
+
+var express = require('express');
+var app = express();
+app.get/*或post*/('/ab*cd'/*路由，支持正则匹配*/, function (req/*Request对象*/, res/*Response对象*/) {
+   res.send('Hello World');
+})
+ 
+var server = /*创建服务*/app.listen(8081, function () {
+ 
+  var host = server.address().address
+  var port = server.address().port
+ 
+  console.log("应用实例，访问地址为 http://%s:%s", host, port)
+ 
+})
+
+静态文件：
+Express 提供了内置的中间件 express.static 来设置静态文件如：图片， CSS, JavaScript 等。
+app.use(express.static('public')); //设置静态文件路径放在 public 目录下
+var bodyParser = require('body-parser');app.use(bodyParser.urlencoded({ extended: false }));//
